@@ -1,8 +1,11 @@
 `default_nettype none
 `timescale 1ns / 1ps
 
-/* This testbench just instantiates the module and makes some convenient wires
-   that can be driven / tested by the cocotb test.py.
+/* Testbench for tt_um_ecslewis_counter8.
+   It instantiates the module, makes convenient wires for the cocotb test
+   in test.py, and models the Tiny Tapeout uio pads so that the real
+   high-impedance (z) behaviour of the tri-state bus is visible in the
+   waveform and can be checked by the test.
 */
 module tb ();
 
@@ -27,8 +30,18 @@ module tb ();
   wire VGND = 1'b0;
 `endif
 
-  // Replace tt_um_example with your module name:
-  tt_um_example user_project (
+  // Model of the bidirectional pads: each uio pin drives uio_out when its
+  // uio_oe bit is high, and is high-impedance otherwise. uio_bus therefore
+  // shows the true tri-state behaviour of the chip's pins.
+  wire [7:0] uio_bus;
+  genvar i;
+  generate
+    for (i = 0; i < 8; i = i + 1) begin : gen_pad
+      assign uio_bus[i] = uio_oe[i] ? uio_out[i] : 1'bz;
+    end
+  endgenerate
+
+  tt_um_ecslewis_counter8 user_project (
 
       // Include power ports for the Gate Level test:
 `ifdef GL_TEST
